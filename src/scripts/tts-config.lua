@@ -103,7 +103,7 @@ local voices = {
 local figures = {
   ["trader"] = {
     en = { voiceModel = voices.en["arctic"], speaker = 0 }}, -- for single speaker models 'speaker' could be omitted
-  ["hunter_ostrich"] = {
+  ["ostrich_hunter"] = {
     en = { voiceModel = voices.en["arctic"], speaker = 1 }},
   ["immigrant"] = {
     en = { voiceModel = voices.en["arctic"], speaker = 3 }},
