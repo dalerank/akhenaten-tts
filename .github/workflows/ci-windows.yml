@@ -42,11 +42,11 @@ jobs:
         run: cmake --preset=${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build --preset=${{ matrix.preset }} --verbose
+        run: cmake --build --preset=${{ matrix.preset }} --target portable_package --verbose
 
       - name: Show files
         shell: pwsh
-        working-directory: build/bin
+        working-directory: build/portable
         run: |
           Get-ChildItem
           if (Test-Path voices) {
