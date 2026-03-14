@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.30)
 project(akhenaten-tts LANGUAGES C CXX)
 set(app akhenaten-tts)
 
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
