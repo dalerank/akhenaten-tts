@@ -39,14 +39,11 @@ if (NOT PIPER_READY)
             "${CMAKE_SOURCE_DIR}/cmake/third-party/patches/003-piper-wchar-fix-win.patch"
             "${CMAKE_SOURCE_DIR}/cmake/third-party/patches/004-piper-add-espeak-ng-patch-win.patch"
         )
-    endif()
-
-    if(APPLE)
+    elseif(APPLE)
         list(APPEND PIPER_PATCHES
             "${CMAKE_SOURCE_DIR}/cmake/third-party/patches/005-piper-add-espeak-ng-patch-macos.patch"
         )
     endif()
-
 
     list(JOIN PIPER_PATCHES "|" PIPER_PATCHES_SERIALIZED) # serialize list
 
@@ -150,4 +147,3 @@ add_custom_command(
     VERBATIM
 )
 add_custom_target(copy_piper_assets ALL DEPENDS ${PIPER_ASSETS_COPIED_STAMP})
-
