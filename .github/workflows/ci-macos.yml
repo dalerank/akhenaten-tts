@@ -42,9 +42,7 @@ jobs:
       - name: Build
         run: cmake --build --preset=${{ matrix.preset }} --target portable_package -- -j$(sysctl -n hw.logicalcpu) --verbose
 
-      - name: Show files
+      - name: Show installed files
         working-directory: build/portable
         run: |
           ls
-          tree -a voices || true
-

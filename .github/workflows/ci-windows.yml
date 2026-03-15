@@ -44,11 +44,8 @@ jobs:
       - name: Build
         run: cmake --build --preset=${{ matrix.preset }} --target portable_package --verbose
 
-      - name: Show files
+      - name: Show installed files
         shell: pwsh
         working-directory: build/portable
         run: |
           Get-ChildItem
-          if (Test-Path voices) {
-            tree /A /F voices
-          }
