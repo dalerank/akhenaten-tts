@@ -50,6 +50,30 @@ if (NOT PIPER_READY)
     # Set libpiper's espeak-ng dependency to a specific version to avoid breakages from upstream changes
     set(ESPEAK_NG_GIT_TAG a06074c8fd80f2fd3632164dc01ebf1135395e11 CACHE STRING "espeak-ng git tag")
 
+    # Make library portable (can find its dependencies in the same directory)
+    set(PIPER_RUNTIME_RPATH "")
+    if(APPLE)
+        set(PIPER_RUNTIME_RPATH "@loader_path")
+    elseif(UNIX)
+        set(PIPER_RUNTIME_RPATH "\$ORIGIN")
+    endif()
+
+    set(PIPER_EXTERNAL_CMAKE_ARGS
+        -DLIBPIPER_EXPORT_SYMBOLS=ON
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_INSTALL_PREFIX=${PIPER_INSTALL_DIR}
+    )
+
+    if(PIPER_RUNTIME_RPATH)
+        list(APPEND PIPER_EXTERNAL_CMAKE_ARGS
+            -DCMAKE_BUILD_RPATH=${PIPER_RUNTIME_RPATH}
+            -DCMAKE_INSTALL_RPATH=${PIPER_RUNTIME_RPATH}
+            -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
+        )
+    endif()
+
     ExternalProject_Add(libpiper_ext
         GIT_REPOSITORY https://github.com/OHF-Voice/piper1-gpl.git
         GIT_TAG        32b95f8c1f0dc0ce27a6acd1143de331f61af777
@@ -65,11 +89,7 @@ if (NOT PIPER_READY)
 
         CMAKE_GENERATOR ${CMAKE_GENERATOR}
         CMAKE_ARGS
-            -DLIBPIPER_EXPORT_SYMBOLS=ON
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-            -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-            -DCMAKE_INSTALL_PREFIX=${PIPER_INSTALL_DIR}
+            ${PIPER_EXTERNAL_CMAKE_ARGS}
 
         BUILD_BYPRODUCTS
             ${PIPER_INSTALL_DIR}/${PIPER_LIB_NAME}
@@ -105,14 +125,6 @@ else()
         INTERFACE_INCLUDE_DIRECTORIES ${PIPER_INSTALL_DIR}/include
     )
 endif()
-
-# Ensure portable binary can resolve bundled shared libraries from ./
-if(APPLE)
-    set_property(TARGET libpiper APPEND PROPERTY BUILD_RPATH "@loader_path")
-elseif(UNIX)
-    set_property(TARGET libpiper APPEND PROPERTY BUILD_RPATH "\$ORIGIN")
-endif()
-
 
 # ONNX Runtime library shipped by Piper (already downloaded by ExternalProject)
 add_library(libpiper_onnx SHARED IMPORTED)
