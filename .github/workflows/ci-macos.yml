@@ -27,9 +27,11 @@ jobs:
   build-macos:
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         preset: [
-            macos-clang-debug
+            macos-clang-debug,
+            macos-clang-release
         ]
 
     steps:
@@ -43,8 +45,9 @@ jobs:
         run: cmake --build --preset=${{ matrix.preset }} --target portable_package -- -j$(sysctl -n hw.logicalcpu) --verbose
 
       - name: Run
-        working-directory: build/portable
+        working-directory: build/bin/portable
         run: |
+          ls -la lib/
           otool -L akhenaten-tts
           ./akhenaten-tts --figure immigrant --lang en --phrase "Who the heck are you?" --output immigrant-hello-stranger.wav
           ls -la
