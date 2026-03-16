@@ -1,5 +1,7 @@
 include(ExternalProject)
 
+set(ONNX_RUNTIME_VERSION "1.22.0")
+
 if(WIN32)
     set(PIPER_LIB_NAME piper.dll)
     set(PIPER_IMPLIB_NAME piper.lib)
@@ -7,7 +9,8 @@ if(WIN32)
     set(ONNX_IMPLIB_NAME onnxruntime.lib)
 elseif(APPLE)
     set(PIPER_LIB_NAME libpiper${CMAKE_SHARED_LIBRARY_SUFFIX})
-    set(ONNX_LIB_NAME libonnxruntime${CMAKE_SHARED_LIBRARY_SUFFIX})
+    # macOS runtime resolves the versioned install name (e.g. libonnxruntime.1.22.0.dylib)
+    set(ONNX_LIB_NAME libonnxruntime.${ONNX_RUNTIME_VERSION}${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
     set(PIPER_LIB_NAME libpiper${CMAKE_SHARED_LIBRARY_SUFFIX})
     # Linux runtime resolves SONAME libonnxruntime.so.1
@@ -64,6 +67,7 @@ if (NOT PIPER_READY)
 
     set(PIPER_EXTERNAL_CMAKE_ARGS
         -DLIBPIPER_EXPORT_SYMBOLS=ON
+        -DONNXRUNTIME_VERSION=${ONNX_RUNTIME_VERSION}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
