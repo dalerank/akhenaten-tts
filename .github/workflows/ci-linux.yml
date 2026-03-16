@@ -57,9 +57,9 @@ jobs:
         run: cmake --build --preset=${{ matrix.preset }} --target portable_package -- -j$(nproc) --verbose
 
       - name: Run
-        working-directory: build/portable
+        working-directory: build/bin/portable
         run: |
-          ls lib/ -la
+          ls -la lib/
           ldd akhenaten-tts
           ./akhenaten-tts --figure immigrant --lang en --phrase "Who the heck are you?" --output immigrant-hello-stranger.wav
           ls -la
