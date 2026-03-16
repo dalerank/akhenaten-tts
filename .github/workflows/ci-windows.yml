@@ -45,7 +45,7 @@ jobs:
         run: cmake --preset=${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build --preset=${{ matrix.preset }} --target portable_package --verbose
+        run: cmake --build --preset=${{ matrix.preset }} --target portable_package --parallel -- --verbose
 
       - name: Run
         shell: pwsh
