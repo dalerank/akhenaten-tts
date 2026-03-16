@@ -128,8 +128,8 @@ add_custom_target(portable_package
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "$<TARGET_PROPERTY:libpiper,IMPORTED_LOCATION>"
         "${APP_PORTABLE_LIBS_DIR}/"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${PIPER_INSTALL_DIR}/lib"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_PROPERTY:libpiper_onnx,IMPORTED_LOCATION>"
         "${APP_PORTABLE_LIBS_DIR}/"
     DEPENDS ${app}
     VERBATIM
