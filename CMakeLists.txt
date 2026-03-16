@@ -100,7 +100,7 @@ elseif(WIN32)
             /Zc:strictStrings
         )
     endif()
-    if(is_msvc)
+    if(is_msvc AND NOT is_clang)
         target_compile_options(${app} PRIVATE /MP)
     endif()
 endif()
