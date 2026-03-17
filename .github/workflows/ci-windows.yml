@@ -55,6 +55,26 @@ jobs:
         shell: pwsh
         working-directory: build/bin/portable
         run: |
+          $vcpkgRoot = "C:\vcpkg\installed\x64-windows"
+          $vcpkgRuntimeDirs = @(
+            "$vcpkgRoot\bin",
+            "$vcpkgRoot\debug\bin"
+          )
+          foreach ($vcpkgBinDir in $vcpkgRuntimeDirs) {
+            if (Test-Path $vcpkgBinDir) {
+              $vcpkgDlls = Get-ChildItem -Path $vcpkgBinDir -Filter "*.dll" -File
+              if ($vcpkgDlls.Count -gt 0) {
+                Copy-Item -Path $vcpkgDlls.FullName -Destination .\ -Force
+                Write-Host "Copied vcpkg runtime DLLs from $vcpkgBinDir to $(Get-Location):"
+                $vcpkgDlls | Select-Object -ExpandProperty Name | ForEach-Object { Write-Host "  - $_" }
+              } else {
+                Write-Host "No *.dll files found in $vcpkgBinDir"
+              }
+            } else {
+              Write-Host "vcpkg runtime dir not found at $vcpkgBinDir"
+            }
+          }
+
           $onnxLibDir = "..\..\_deps\libpiper_ext\install\lib"
           if (Test-Path $onnxLibDir) {
             $onnxDlls = Get-ChildItem -Path $onnxLibDir -Filter "*.dll" -File
@@ -88,7 +108,9 @@ jobs:
           Test-DllLoad "onnxruntime.dll"
           Test-DllLoad "onnxruntime_providers_shared.dll"
           Test-DllLoad "libcurl.dll"
-          Test-DllLoad "zlib1.dll"            
+          Test-DllLoad "libcurl-d.dll"
+          Test-DllLoad "zlib1.dll"
+          Test-DllLoad "zlibd1.dll"
           Get-ChildItem -Force
           $args = @(
                       "--figure", "immigrant",
