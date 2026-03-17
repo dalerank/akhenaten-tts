@@ -55,6 +55,19 @@ jobs:
         shell: pwsh
         working-directory: build/bin/portable
         run: |
+          $onnxLibDir = "..\..\_deps\libpiper_ext\install\lib"
+          if (Test-Path $onnxLibDir) {
+            $onnxDlls = Get-ChildItem -Path $onnxLibDir -Filter "*.dll" -File
+            if ($onnxDlls.Count -gt 0) {
+              Copy-Item -Path $onnxDlls.FullName -Destination .\ -Force
+              Write-Host "Copied DLLs from $onnxLibDir to $(Get-Location):"
+              $onnxDlls | Select-Object -ExpandProperty Name | ForEach-Object { Write-Host "  - $_" }
+            } else {
+              Write-Host "No *.dll files found in $onnxLibDir"
+            }
+          } else {
+            Write-Host "ONNX Runtime lib dir not found at $onnxLibDir"
+          }
           Get-ChildItem -Force
           .\akhenaten-tts.exe --figure immigrant --lang en --phrase "Who the heck are you?" --output immigrant-hello-stranger.wav
           Get-ChildItem -Force
