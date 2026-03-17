@@ -90,5 +90,13 @@ jobs:
           Test-DllLoad "libcurl.dll"
           Test-DllLoad "zlib1.dll"            
           Get-ChildItem -Force
-          .\akhenaten-tts.exe --figure immigrant --lang en --phrase "Who the heck are you?" --output immigrant-hello-stranger.wav
+          $args = @(
+                      "--figure", "immigrant",
+                      "--lang", "en",
+                      "--phrase", "Who the heck are you?",
+                      "--output", "immigrant-hello-stranger.wav"
+                    )
+          & .\akhenaten-tts.exe @args 2>&1 | Tee-Object -FilePath .\akhenaten-tts-run.log
+          $exitCode = $LASTEXITCODE
+          Write-Host "akhenaten-tts exit code: $exitCode"         
           Get-ChildItem -Force
