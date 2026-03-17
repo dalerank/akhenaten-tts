@@ -47,7 +47,15 @@ jobs:
       - name: Run
         working-directory: build/bin/portable
         run: |
-          ls -la lib/
-          otool -L akhenaten-tts
+          echo "Removing _deps for strict portable runtime test"
+          rm -rf ../../_deps
+
+          echo "Running akhenaten-tts..."
           ./akhenaten-tts --figure immigrant --lang en --phrase "Who the heck are you?" --output immigrant-hello-stranger.wav
-          ls -la
+
+          if [ -f immigrant-hello-stranger.wav ]; then
+            echo "Output wav-file found. Test passed."
+          else
+            echo "Unable to find output wav-file. Test failed."
+            exit 1
+          fi
