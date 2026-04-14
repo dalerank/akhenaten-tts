@@ -1,0 +1,2 @@
+# Portable Windows bundle (~30+ MB): store in Git LFS so clones stay small.
+dist/**/*.sgx filter=lfs diff=lfs merge=binary -text

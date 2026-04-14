@@ -1,0 +1,133 @@
+# Builds build/bin/portable, packs to a .sgx file (ZIP container; Akhenaten mounts .sgx like .zip).
+# - CI artifact (every run)
+# - On tag push v*: attach .sgx to GitHub Release — stable direct URL for public repos:
+#   https://github.com/<owner>/<repo>/releases/download/<tag>/akhenaten-tts-portable-windows-x64.sgx
+# - Optional: commit dist/*.sgx via Git LFS (workflow_dispatch)
+
+name: Windows portable (akh-tts)
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sgx_to_repo:
+        description: "Commit dist/akhenaten-tts-portable-windows-x64.sgx to this branch (Git LFS)"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
+    paths:
+      - "CMakeLists.txt"
+      - "cmake/**"
+      - "src/**"
+      - ".github/workflows/windows-portable-akh-tts.yml"
+      - ".gitattributes"
+    paths-ignore:
+      - "dist/**"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: windows-portable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure CMake (MSVC Release)
+        run: cmake --preset windows-msvc-release
+
+      - name: Build portable_package
+        run: cmake --build --preset windows-msvc-release --target portable_package --parallel --verbose
+
+      - name: Smoke test (portable)
+        shell: pwsh
+        working-directory: build/bin/portable
+        run: |
+          if (Test-Path "..\..\..\_deps") { Remove-Item "..\..\..\_deps" -Recurse -Force }
+          .\akhenaten-tts.exe --figure immigrant --lang en --phrase "CI smoke test" --output ci-smoke.wav
+          if (-not (Test-Path "ci-smoke.wav")) { throw "akhenaten-tts did not produce output wav" }
+
+      # PowerShell Compress-Archive only accepts .zip; rename to .sgx (same PK zip bytes).
+      - name: Pack portable folder to .sgx
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $src = Join-Path $pwd "build/bin/portable"
+          $stage = Join-Path $env:RUNNER_TEMP "portable-zip-contents"
+          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+          Copy-Item -Path $src -Destination $stage -Recurse -Force
+          Remove-Item (Join-Path $stage "ci-smoke.wav") -ErrorAction SilentlyContinue
+          $ver = "${{ github.ref_name }}-${{ github.sha }}"
+          if ("${{ github.ref_type }}" -ne "tag") { $ver = "dev-${{ github.sha }}" }
+          Set-Content -Path (Join-Path $stage "BUILD_INFO.txt") -Value "akhenaten-tts $ver`nrepository: ${{ github.repository }}`nworkflow: ${{ github.workflow }}"
+          $tmpZip = Join-Path $env:RUNNER_TEMP "akhenaten-tts-portable.zip"
+          if (Test-Path $tmpZip) { Remove-Item $tmpZip -Force }
+          $entries = Get-ChildItem -Path $stage -Force
+          if (-not $entries) { throw "No files to pack under portable" }
+          Compress-Archive -Path $entries.FullName -DestinationPath $tmpZip -CompressionLevel Optimal
+          New-Item -ItemType Directory -Path (Join-Path $pwd "dist") -Force | Out-Null
+          $sgx = Join-Path $pwd "dist/akhenaten-tts-portable-windows-x64.sgx"
+          if (Test-Path $sgx) { Remove-Item $sgx -Force }
+          Move-Item -Path $tmpZip -Destination $sgx
+          Write-Host "Created $sgx (ZIP container, .sgx extension for Akhenaten VFS)"
+          Get-Item $sgx | Format-List Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: akhenaten-tts-portable-windows-x64
+          path: dist/akhenaten-tts-portable-windows-x64.sgx
+          if-no-files-found: error
+
+      - name: Create GitHub Release and attach .sgx (tag v* only)
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/akhenaten-tts-portable-windows-x64.sgx
+          generate_release_notes: true
+
+      - name: Print direct download URL
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+        shell: pwsh
+        run: |
+          $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/akhenaten-tts-portable-windows-x64.sgx"
+          Write-Host "Direct download (public repo):"
+          Write-Host $url
+
+      - name: Commit dist/*.sgx to this repository (Git LFS)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_sgx_to_repo == true && github.ref_type == 'branch' }}
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          git lfs version
+          git lfs install
+          $sgx = Join-Path $pwd "dist/akhenaten-tts-portable-windows-x64.sgx"
+          if (-not (Test-Path $sgx)) { throw "Missing $sgx" }
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .gitattributes dist/akhenaten-tts-portable-windows-x64.sgx
+          git status
+          git diff --staged --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "No changes to commit under dist/."
+            exit 0
+          }
+          git commit -m "ci: update Windows portable .sgx [skip ci]"
+          git push origin "HEAD:${{ github.ref_name }}"
+          Write-Host "Pushed dist/*.sgx (LFS) to ${{ github.repository }} (${{ github.ref_name }})"
