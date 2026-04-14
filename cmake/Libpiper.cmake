@@ -66,10 +66,21 @@ if (NOT PIPER_READY)
         set(PIPER_RUNTIME_RPATH "\$ORIGIN")
     endif()
 
+    # Single-config: use parent's CMAKE_BUILD_TYPE. Multi-config (Visual Studio): ExternalProject
+    # otherwise defaults to Debug for libpiper, producing piper.dll linked to MSVCP140D/ucrtbased
+    # (0xc0000142 on PCs without VS debug runtime). Force Release for the bundled DLL.
+    set(PIPER_EXT_CONFIG "${CMAKE_BUILD_TYPE}")
+    if(NOT PIPER_EXT_CONFIG OR PIPER_EXT_CONFIG STREQUAL "None")
+        set(PIPER_EXT_CONFIG "Release")
+    endif()
+    if(CMAKE_CONFIGURATION_TYPES)
+        set(PIPER_EXT_CONFIG "Release")
+    endif()
+
     set(PIPER_EXTERNAL_CMAKE_ARGS
         -DLIBPIPER_EXPORT_SYMBOLS=ON
         -DONNXRUNTIME_VERSION=${ONNX_RUNTIME_VERSION}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_BUILD_TYPE=${PIPER_EXT_CONFIG}
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_INSTALL_PREFIX=${PIPER_INSTALL_DIR}
@@ -80,6 +91,14 @@ if (NOT PIPER_READY)
             -DCMAKE_BUILD_RPATH=${PIPER_RUNTIME_RPATH}
             -DCMAKE_INSTALL_RPATH=${PIPER_RUNTIME_RPATH}
             -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
+        )
+    endif()
+
+    set(PIPER_EP_EXTRA_ARGS "")
+    if(CMAKE_CONFIGURATION_TYPES)
+        list(APPEND PIPER_EP_EXTRA_ARGS
+            BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${PIPER_EXT_CONFIG} --parallel
+            INSTALL_COMMAND ${CMAKE_COMMAND} --install <BINARY_DIR> --config ${PIPER_EXT_CONFIG}
         )
     endif()
 
@@ -99,6 +118,7 @@ if (NOT PIPER_READY)
         CMAKE_GENERATOR ${CMAKE_GENERATOR}
         CMAKE_ARGS
             ${PIPER_EXTERNAL_CMAKE_ARGS}
+        ${PIPER_EP_EXTRA_ARGS}
 
         BUILD_BYPRODUCTS
             ${PIPER_INSTALL_DIR}/${PIPER_LIB_NAME}
